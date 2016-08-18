@@ -116,47 +116,45 @@ abstract class Server
      * @param array $group
      * @param array $report
      */
-    public function discovery(array $group, array $report)
+    public function discovery(array $group, array $discoveries)
     {
         $self = $this;
-        $this->monitorProcess = new \swoole_process(function () use ($group, $report, $self) {
+        $this->monitorProcess = new \swoole_process(function () use ($group, $discoveries, $self) {
             while (true) {
                 // 上报的服务器IP
                 $reportServerIP = $self->getLocalIp();
                 swoole_set_process_name("dora: monitor (".$reportServerIP.")");
 
-                foreach ($report as $discovery) {
-                    foreach ($discovery as $config) {
-                        if (trim($config["ip"]) && $config["port"] > 0) {
-                            $key = $config["ip"] . "_" . $config["port"];
-                            try {
-                                if (!isset($_redisObj[$key])) {
-                                    //if not connect
-                                    $_redisObj[$key] = new \Redis();
-                                    $_redisObj[$key]->connect($config["ip"], $config["port"]);
-                                }
-                                //register this server
-                                $_redisObj[$key]->sadd("dora.serverlist", json_encode(array(
-                                    "node" => array(
-                                        "ip" => $reportServerIP,
-                                        "port" => $self->serverPort
-                                    ),
-                                    "group" => $group,
-                                )));
-                                //set time out
-                                $_redisObj[$key]->set("dora.servertime." . $reportServerIP . "." . $self->serverPort . ".time", time());
-                                echo "Reported Service Discovery:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
-
-                            } catch (\Exception $ex) {
-                                $_redisObj[$key] = null;
-                                echo "connect to Service Discovery error:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
+                foreach ($discoveries as $discovery) {
+                    if (trim($discovery["ip"]) && $discovery["port"] > 0) {
+                        $key = $discovery["ip"] . "_" . $discovery["port"];
+                        try {
+                            if (!isset($_redisObj[$key])) {
+                                //if not connect
+                                $_redisObj[$key] = new \Redis();
+                                $_redisObj[$key]->connect($discovery["ip"], $discovery["port"]);
                             }
-                        }
+                            //register this server
+                            $_redisObj[$key]->sadd("dora.serverlist", json_encode(array(
+                                "node" => array(
+                                    "ip" => $reportServerIP,
+                                    "port" => $self->serverPort
+                                ),
+                                "group" => $group,
+                            )));
+                            //set time out
+                            $_redisObj[$key]->set("dora.servertime." . $reportServerIP . "." . $self->serverPort . ".time", time());
+                            echo "Reported Service Discovery:" . $discovery["ip"] . ":" . $discovery["port"] . PHP_EOL;
 
-                        sleep(10);
-                        //sleep 10 sec and report again
-                    }// config foreach
-                }//discover foreach
+                        } catch (\Exception $ex) {
+                            $_redisObj[$key] = null;
+                            echo "connect to Service Discovery error:" . $discovery["ip"] . ":" . $discovery["port"] . PHP_EOL;
+                        }
+                    }
+
+                    sleep(10);
+                    //sleep 10 sec and report again
+                }// config foreach
             }
         });
         $this->server->addProcess($this->monitorProcess);

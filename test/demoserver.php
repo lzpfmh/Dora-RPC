@@ -64,16 +64,13 @@ $server->discovery(
         'group1', 'group2'
     ),
     array(
-
-        array(
-            array(//first reporter
-                "ip" => "127.0.0.1",
-                "port" => "6379",
-            ),
-            array(//next reporter
-                "ip" => "127.0.0.1",
-                "port" => "6379",
-            ),
+        array(//first reporter
+            "ip" => "127.0.0.1",
+            "port" => "6379",
+        ),
+        array(//next reporter
+            "ip" => "127.0.0.1",
+            "port" => "6379",
         ),
     ));
 
