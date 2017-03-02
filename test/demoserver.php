@@ -1,9 +1,10 @@
 <?php
 include "../src/DoraConst.php";
 include "../src/Packet.php";
-include "../src/Server.php";
+include "../src/BackEndServer.php";
+include "../src/LogAgent.php";
 
-class Server extends \DoraRPC\Server
+class APIServer extends \DoraRPC\BackEndServer
 {
 
     function initServer($server)
@@ -17,7 +18,7 @@ class Server extends \DoraRPC\Server
         //process you logical 业务实际处理代码仍这里
         //return the result 使用return返回处理结果
         //throw new Exception("asbddddfds",1231);
-
+        \DoraRPC\LogAgent::recordLog(\DoraRPC\DoraConst::LOG_TYPE_INFO, "dowork", __FILE__, __LINE__, array("esfs"));
         return array("hehe" => "ohyes123");
     }
 
@@ -28,33 +29,37 @@ class Server extends \DoraRPC\Server
 }
 
 //ok start server
-$server = new Server("0.0.0.0", 9567, 9566);
+$server = new APIServer("0.0.0.0", 9567, 9566);
 
 $server->configure(array(
-    'tcp' => array(
-
-    ),
+    'tcp' => array(),
     'http' => array(
         //to improve the accept performance ,suggest the number of cpu X 2
         //如果想提高请求接收能力，更改这个，推荐cpu个数x2
-        'reactor_num' => 16,
+        'reactor_num' => 8,
 
         //packet decode process,change by condition
-        //包处理进程，根据情况调整数量
-        'worker_num' => 30,
+        //包处理进程，根据情况调整数量，推荐cpu个数x2
+        'worker_num' => 16,
 
         //the number of task logical process progcessor run you business code
         //实际业务处理进程，根据需要进行调整
-        'task_worker_num' => 200,
+        'task_worker_num' => 100,
 
         'daemonize' => false,
 
         'log_file' => '/tmp/sw_server.log',
 
         'task_tmpdir' => '/tmp/swtasktmp/',
-        // header key must uc_first
-        'response_header' => array('Aaa' => 'bbb')
-    )
+
+    ),
+    'dora' => array(
+        'pid_path' => '/tmp/',//dora 自定义变量，用来保存pid文件
+        //'response_header' => array('Content_Type' => 'application/json; charset=utf-8'),
+        'master_pid' => 'doramaster.pid', //dora master pid 保存文件
+        'manager_pid' => 'doramanager.pid',//manager pid 保存文件
+        'log_path' => '/tmp/bizlog/', //业务日志
+    ),
 ));
 
 //redis for service discovery register
